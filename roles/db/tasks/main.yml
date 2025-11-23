@@ -1,0 +1,44 @@
+- name: Install MySQL server
+  apt:
+    name: mysql-server
+    state: present
+    update_cache: yes
+
+- name: Install Python MySQL library
+  apt:
+    name: python3-pymysql
+    state: present
+
+- name: Ensure MySQL service is running
+  service:
+    name: mysql
+    state: started
+    enabled: yes
+
+- name: Allow MySQL to listen on all interfaces
+  lineinfile:
+    path: /etc/mysql/mysql.conf.d/mysqld.cnf
+    regexp: '^bind-address'
+    line: 'bind-address = 0.0.0.0'
+  notify: Restart MySQL
+
+- name: Ensure database exists
+  mysql_db:
+    name: "{{ db_name }}"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Ensure admin user exists with access from any host
+  mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    host: "%"
+    priv: "{{ db_name }}.*:ALL"
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Allow MySQL port through UFW firewall
+  ufw:
+    rule: allow
+    port: '3306'
+    proto: tcp

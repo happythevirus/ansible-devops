@@ -1,0 +1,67 @@
+---
+# tasks file for web
+
+# 1. Install Docker
+- name: Install required packages for Docker
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  loop:
+    - docker.io
+    - python3-pip  # for docker Python module
+    - python3-docker
+
+# 2. Create Flask app directory on remote host
+- name: Create Flask app directory
+  file:
+    path: /home/{{ remote_user }}/flask-app/
+    state: directory
+    owner: "{{ remote_user }}"
+    group: "{{ remote_user }}"
+    mode: '0755'
+
+# 3. Copy Flask application + Dockerfile
+- name: Copy Flask app files and Dockerfile
+  copy:
+    src: roles/web/files/app/
+    dest: /home/{{ remote_user }}/flask-app/
+    owner: "{{ remote_user }}"
+    group: "{{ remote_user }}"
+    mode: '0755'
+    remote_src: no
+
+# 4. List Flask app directory on remote
+- name: List Flask app directory on remote
+  command: ls -la /home/{{ remote_user }}/flask-app/
+  register: flask_files
+
+- debug:
+    var: flask_files.stdout_lines
+
+# 5. Build Docker image
+
+- name: Build Docker image
+  become: yes
+  community.docker.docker_image:
+    name: "{{ docker_image_name }}"
+    build:
+      path: /home/{{ remote_user }}/flask-app/
+    source: build
+    state: present
+    tag: latest
+
+# 6. Run Flask container
+- name: Run Flask container
+  become: yes
+  docker_container:
+    name: "{{ docker_container_name }}"
+    image: "{{ docker_image_name }}:latest"
+    state: started
+    recreate: yes
+    published_ports:
+      - "5000:5000"
+    env:
+      DB_USER: "{{ db_user }}"
+      DB_PASSWORD: "{{ db_password }}"
+      DB_NAME: "{{ db_name }}"

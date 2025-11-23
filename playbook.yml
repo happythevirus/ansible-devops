@@ -1,0 +1,14 @@
+- hosts: app
+  become: yes
+  vars_files:
+    - group_vars/vault.yml
+  roles:
+    - db
+
+
+- hosts: app
+  become: yes
+  vars_files:
+    - group_vars/vault.yml
+  roles:
+    - web

@@ -1,0 +1,8 @@
+---
+# defaults file for web
+db_name: app
+db_user: fidan
+db_password: ubuntu
+docker_image_name: flask_app
+docker_container_name: flask_app_container
+app_port: 5000
